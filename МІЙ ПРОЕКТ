@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Monobank-style DEMO — локальний макет</title>
+<style>
+/* === Demo notice === */
+:root{--accent:#2ad39a;--accent2:#18b683}
+body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;-webkit-font-smoothing:antialiased;background:#071226;color:#eaf0f3;user-select:none;}
+/* Prevent text selection globally and context menu */
+*{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
+html,body{height:100%}
+/* App shell */
+.app{width:420px;height:900px;margin:24px auto;border-radius:30px;background:linear-gradient(180deg,#071226,#041026);box-shadow:0 30px 90px rgba(2,6,20,.7);position:relative;overflow:hidden}
+.header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px}
+.leftTop{display:flex;gap:12px;align-items:center}
+.avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(90deg,#2b6bff,#7a3bff);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;border:2px solid rgba(255,255,255,0.04)}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.titleBlock{display:flex;flex-direction:column}
+.appTitle{font-weight:800;font-size:18px}
+.subTitle{font-size:12px;color:rgba(255,255,255,0.65)}
+.topActions{display:flex;gap:8px;align-items:center}
+.iconBtn{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.02);display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+/* Cards viewport */
+.cardsViewport{height:220px;padding:8px 20px;display:flex;align-items:center;position:relative;overflow:hidden}
+.cardsTrack{display:flex;gap:14px;will-change:transform;transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.card{width:340px;height:170px;border-radius:14px;padding:14px;color:#fff;background:linear-gradient(180deg,#0c1724,#07101a);box-shadow:0 24px 60px rgba(2,6,12,.5);flex-shrink:0;position:relative;cursor:pointer;overflow:hidden}
+.card .topRow{display:flex;justify-content:space-between;align-items:center}
+.card .number{font-size:18px;letter-spacing:2px;margin-top:12px}
+.card .bal{font-weight:800;font-size:28px;margin-top:10px}
+.card.locked{filter:grayscale(.9) brightness(.6);opacity:.75}
+.skinThumb{position:absolute;inset:0;object-fit:cover;opacity:.16;pointer-events:none}
+
+/* dots */
+.dots{display:flex;gap:8px;justify-content:center;padding:6px 0}
+.dot{width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,0.06);cursor:pointer}
+.dot.active{background:var(--accent)}
+
+/* Quick actions */
+.actions{display:flex;gap:10px;padding:0 20px;margin-top:8px}
+.action{flex:1;background:rgba(255,255,255,0.02);padding:12px;border-radius:12px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
+.action .big{font-size:20px}
+
+/* ops list */
+.ops{padding:12px 20px 80px 20px;overflow:auto;height:300px}
+.tx{display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);margin-bottom:10px}
+.tx .left{display:flex;gap:12px;align-items:center}
+.circle{width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center}
+
+/* modal (generic) */
+.modal{position:absolute;left:18px;right:18px;top:140px;background:linear-gradient(180deg,#071021,#091428);border-radius:14px;padding:14px;z-index:80;box-shadow:0 30px 80px rgba(0,0,0,.6);display:none}
+.modal.active{display:block}
+
+/* popover */
+.popover{position:absolute;background:linear-gradient(180deg,#0f1720,#07101a);border-radius:10px;padding:8px;box-shadow:0 12px 40px rgba(0,0,0,.6);z-index:120;width:220px}
+.popover .opt{padding:10px;border-radius:8px;cursor:pointer;font-weight:700}
+.popover .opt + .opt{margin-top:6px}
+.popover .opt:hover{background:rgba(255,255,255,0.02)}
+
+/* transfer / addcard inputs */
+.field{display:flex;flex-direction:column;margin-bottom:8px}
+.input{padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;font-size:16px}
+.hint{font-size:12px;color:rgba(255,255,255,0.45)}
+
+/* buttons */
+.row{display:flex;gap:10px}
+.btn{flex:1;padding:12px;border-radius:12px;text-align:center;font-weight:800;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04)}
+.btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#061013}
+
+/* success overlay (cat) */
+.success{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:200;pointer-events:none;opacity:0;transition:opacity .18s}
+.success.show{pointer-events:auto;opacity:1}
+.successBox{width:86%;max-width:360px;background:linear-gradient(180deg,#071021,#081225);border-radius:14px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.catWrap{width:160px;height:160px;border-radius:12px;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center}
+
+/* PIN overlay */
+.pinScreen{position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.55));display:none;align-items:center;justify-content:center;z-index:300}
+.pinBox{width:320px;background:#071022;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;align-items:center}
+
+/* small helpers */
+.small{font-size:13px;color:rgba(255,255,255,0.6)}
+.center{display:flex;align-items:center;justify-content:center}
+.fileInput{display:none}
+
+/* demo watermark */
+.demoMark{position:absolute;left:12px;bottom:12px;font-size:12px;color:rgba(255,255,255,0.08);pointer-events:none}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- header -->
+  <div class="header">
+    <div class="leftTop">
+      <div class="avatar" id="avatarBtn" title="Змінити аватар"><img id="avatarImg" src=""></div>
+      <div class="titleBlock">
+        <div class="appTitle">MONO DEMO</div>
+        <div class="subTitle" id="userName">Локальний демо-профіль</div>
+      </div>
+    </div>
+    <div class="topActions">
+      <div class="iconBtn" id="themeBtn" title="Тема">🌙</div>
+      <div class="iconBtn" id="settingsBtn" title="Налаштування">⚙️</div>
+    </div>
+  </div>
+
+  <!-- cards -->
+  <div class="cardsViewport" id="viewport">
+    <div class="cardsTrack" id="cardsTrack"></div>
+  </div>
+
+  <div class="dots" id="dots"></div>
+
+  <!-- quick actions -->
+  <div class="actions">
+    <div class="action" id="actTransfer"><div class="big">💸</div><div class="small">Переказ</div></div>
+    <div class="action" id="actAdd"><div class="big">＋</div><div class="small">Додати карту</div></div>
+    <div class="action" id="actAccount"><div class="big">👤</div><div class="small">Акаунт</div></div>
+  </div>
+
+  <!-- operations -->
+  <div class="ops" id="ops"></div>
+
+  <!-- Popover (card actions) -->
+  <div id="cardPopover" class="popover" style="display:none;opacity:0;transition:opacity .12s">
+    <div class="opt" id="optLock">🔒 Заблокувати карту</div>
+    <div class="opt" id="optHistory">📜 Переглянути історію</div>
+    <div class="opt" id="optSkin">🖼️ Змінити скін</div>
+  </div>
+
+  <!-- Transfer modal -->
+  <div class="modal" id="transferModal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-weight:800">Переказ (демо)</div><div style="cursor:pointer" id="closeTransfer">✕</div>
+    </div>
+    <div class="field"><div class="small">З картки</div><div id="transferSource" class="small"></div></div>
+    <div class="field"><label class="small">Картка отримувача</label><input id="inpDest" class="input" placeholder="4444 4444 4444 4444" maxlength="19" inputmode="numeric"/></div>
+    <div class="field"><label class="small">Сума ₴</label><input id="inpAmount" class="input" placeholder="1 234.56" inputmode="decimal"/></div>
+    <div class="field"><label class="small">Коментар</label><input id="inpNote" class="input" placeholder="Наприклад: подарунок"/></div>
+    <div class="row"><div class="btn ghost" id="cancelTransfer">Відмінити</div><div class="btn primary" id="confirmTransfer">Відправити</div></div>
+  </div>
+
+  <!-- Add card modal -->
+  <div class="modal" id="addModal" style="top:160px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-weight:800">Додати карту</div><div style="cursor:pointer" id="closeAdd">✕</div>
+    </div>
+    <div class="field"><label class="small">Номер карти</label><input id="newNum" class="input" placeholder="4444 4444 4444 4444" maxlength="19" inputmode="numeric" /></div>
+    <div class="field"><label class="small">Баланс ₴</label><input id="newBal" class="input" placeholder="1000.00" inputmode="decimal" /></div>
+    <div class="field"><label class="small">Скін (опц.)</label><label class="btn ghost center" for="skinFile">Вибрати файл</label><input id="skinFile" class="fileInput" type="file" accept="image/*"/><div id="skinLabel" class="small"></div></div>
+    <div class="row"><div class="btn ghost" id="cancelAddCard">Скасувати</div><div class="btn primary" id="addCardBtn">Додати</div></div>
+  </div>
+
+  <!-- Account modal -->
+  <div class="modal" id="accountModal" style="top:160px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-weight:800">Акаунт (демо)</div><div style="cursor:pointer" id="closeAcct">✕</div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <div class="avatar" style="width:72px;height:72px;overflow:hidden"><img id="acctImg" src=""></div>
+      <div style="flex:1">
+        <label class="small">Ім'я</label><input id="acctName" class="input" />
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <label class="btn ghost" for="acctFile">Змінити аватар</label><input id="acctFile" class="fileInput" type="file" accept="image/*"/>
+          <div class="btn primary" id="saveAcct">Зберегти</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <div class="small">Тема</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <div class="btn ghost" id="themeDark">ТЕМНА</div>
+        <div class="btn ghost" id="themeLight">СВІТЛА</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success overlay -->
+  <div class="success" id="success">
+    <div class="successBox">
+      <div class="catWrap" id="catWrap"><img id="catGif" src="https://media.giphy.com/media/5xaOcLGvzHxDKjufnLW/giphy.gif" alt="cat" style="width:150px;height:150px;object-fit:contain"></div>
+      <div style="font-weight:800">Переказ успішний!</div>
+      <div id="successInfo" class="small">Сума: —</div>
+      <div style="display:flex;gap:8px;margin-top:8px"><div class="btn ghost" id="closeSuccess">Закрити</div></div>
+    </div>
+  </div>
+
+  <!-- PIN screen (simple) -->
+  <div class="pinScreen" id="pinScreen">
+    <div class="pinBox">
+      <div style="font-weight:800" id="pinTitle">Введіть PIN</div>
+      <input id="pinInput" class="input" maxlength="6" placeholder="4 цифри" style="text-align:center;width:200px"/>
+      <div style="display:flex;gap:8px;width:100%"><div class="btn ghost" id="pinCancel">Вийти</div><div class="btn primary" id="pinOk">OK</div></div>
+      <div id="pinHint" class="small">PIN ще не встановлено — задайте новий</div>
+    </div>
+  </div>
+
+  <!-- hidden inputs -->
+  <input id="hiddenSkinChooser" type="file" accept="image/*" class="fileInput">
+  <input id="hiddenAvatar" type="file" accept="image/*" class="fileInput">
+
+  <div class="demoMark">DEMO — Не реальний банк</div>
+</div>
+
+<script>
+/* =========================
+   Demo app state (localStorage)
+   ========================= */
+const KEY = 'mono_demo_final_v1';
+let state = {
+  user:{name:'Іван', avatar:null},
+  cards:[
+    {id:genId(), number:'4444123412341234', label:'Головна', balance:12500.50, skin:null, locked:false, ops:[
+      {id:genId(),desc:'Поповнення', amount:+2500, at:Date.now()-86400000},
+      {id:genId(),desc:'Кав’ярня', amount:-80.5, at:Date.now()-3600000}
+    ]},
+    {id:genId(), number:'5355411212341234', label:'Зарплата', balance:42000.00, skin:null, locked:false, ops:[]}
+  ],
+  current:0,
+  theme:'dark',
+  pin:null
+};
+
+try{ const raw = localStorage.getItem(KEY); if(raw) Object.assign(state, JSON.parse(raw)); }catch(e){console.warn('load fail',e)}
+save();
+
+/* ========== helpers ========== */
+function genId(){return 'i'+Math.random().toString(36).slice(2,9)}
+function fmtMoney(n){ if(isNaN(n)) n=0; return Number(n).toLocaleString('uk-UA',{minimumFractionDigits:2,maximumFractionDigits:2}) }
+function spaced4(s){ return (''+s).replace(/\D/g,'').replace(/(.{4})/g,'$1 ').trim(); }
+function maskCard(num){ const s = (''+num).replace(/\D/g,'').padEnd(16,'•'); return s.substr(0,4)+' '+s.substr(4,4)+' '+s.substr(8,4)+' '+s.substr(12,4); }
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+
+/* ========== DOM refs ========== */
+const cardsTrack = document.getElementById('cardsTrack');
+const dots = document.getElementById('dots');
+const ops = document.getElementById('ops');
+const avatarImg = document.getElementById('avatarImg');
+const userName = document.getElementById('userName');
+const themeBtn = document.getElementById('themeBtn');
+
+const transferModal = document.getElementById('transferModal');
+const inpDest = document.getElementById('inpDest');
+const inpAmount = document.getElementById('inpAmount');
+const inpNote = document.getElementById('inpNote');
+const transferSource = document.getElementById('transferSource');
+
+const addModal = document.getElementById('addModal');
+const newNum = document.getElementById('newNum');
+const newBal = document.getElementById('newBal');
+const skinFile = document.getElementById('skinFile');
+const skinLabel = document.getElementById('skinLabel');
+
+const accountModal = document.getElementById('accountModal');
+const acctImg = document.getElementById('acctImg');
+const acctName = document.getElementById('acctName');
+
+const cardPopover = document.getElementById('cardPopover');
+const optLock = document.getElementById('optLock');
+const optHistory = document.getElementById('optHistory');
+const optSkin = document.getElementById('optSkin');
+
+const success = document.getElementById('success');
+const successInfo = document.getElementById('successInfo');
+
+const pinScreen = document.getElementById('pinScreen');
+const pinInput = document.getElementById('pinInput');
+const pinHint = document.getElementById('pinHint');
+
+/* ========== Init UI ========== */
+function init(){
+  applyTheme(state.theme);
+  renderUser();
+  renderCards();
+  renderOps();
+  bindUI();
+  // PIN flow
+  if(!state.pin){ pinTitle('Задайте PIN (4 цифри)'); pinHint.textContent='PIN ще не встановлено — придумайте PIN'; pinScreen.style.display='flex'; document.getElementById('pinOk').onclick=setPin; }
+  else { pinTitle('Введіть PIN'); pinHint.textContent='Введіть PIN для доступу'; pinScreen.style.display='flex'; document.getElementById('pinOk').onclick=checkPin; }
+}
+function pinTitle(t){ document.getElementById('pinTitle').textContent = t; }
+
+/* ========== Rendering ========== */
+function renderUser(){
+  userName.textContent = state.user.name || 'Користувач';
+  if(state.user.avatar){ avatarImg.src = state.user.avatar; acctImg.src = state.user.avatar; } else { avatarImg.src=''; acctImg.src=''; }
+}
+
+function renderCards(){
+  cardsTrack.innerHTML='';
+  state.cards.forEach((c, idx)=>{
+    const el = document.createElement('div');
+    el.className='card' + (c.locked? ' locked':'');
+    el.dataset.index = idx;
+    el.innerHTML = `
+      ${c.skin? `<img class="skinThumb" src="${c.skin}" alt="">` : ''}
+      <div class="topRow"><div style="font-weight:800">${c.label}</div><div class="small">${c.number.slice(0,4)}</div></div>
+      <div><div class="number">${maskCard(c.number)}</div><div class="bal">${fmtMoney(c.balance)} ₴</div></div>
+    `;
+    // single click: show popover (menu)
+    el.addEventListener('click',(ev)=>{ ev.stopPropagation(); showPopoverForCard(idx, el); });
+    // double click: rename demo
+    el.addEventListener('dblclick',()=>{ const nm = prompt('Нова назва картки', c.label); if(nm!==null){ c.label=nm; save(); renderCards(); }} );
+    cardsTrack.appendChild(el);
+  });
+  updateTrack();
+  renderDots();
+}
+
+function renderDots(){
+  dots.innerHTML='';
+  state.cards.forEach((c,i)=>{
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===state.current? ' active' : '');
+    d.onclick = ()=>{ switchCard(i); };
+    dots.appendChild(d);
+  });
+}
+
+function updateTrack(){
+  const w = 340 + 14;
+  const offset = - state.current * w;
+  cardsTrack.style.transform = `translateX(${offset}px)`;
+  renderOps();
+}
+
+function renderOps(){
+  ops.innerHTML='';
+  const c = state.cards[state.current];
+  if(!c) { ops.innerHTML = '<div class="small">Немає карт</div>'; return; }
+  if(!c.ops || c.ops.length===0){ ops.innerHTML = '<div class="small">У цієї карти поки що немає операцій</div>'; return; }
+  c.ops.forEach(o=>{
+    const el = document.createElement('div'); el.className='tx';
+    el.innerHTML = `<div class="left"><div class="circle">💳</div><div><div>${o.desc}</div><div class="small">${new Date(o.at).toLocaleString()}</div></div></div><div style="font-weight:800">${o.amount<0?'- '+fmtMoney(Math.abs(o.amount)):'+ '+fmtMoney(o.amount)} ₴</div>`;
+    ops.appendChild(el);
+  });
+}
+
+/* ========== Popover (card menu) ========== */
+let popoverTargetIndex = null;
+function showPopoverForCard(index, cardEl){
+  popoverTargetIndex = index;
+  const rect = cardEl.getBoundingClientRect();
+  const appRect = document.querySelector('.app').getBoundingClientRect();
+  // position popover above the card (within app)
+  const pop = cardPopover;
+  pop.style.display='block';
+  pop.style.opacity='0';
+  const left = rect.left - appRect.left + 16; // align a bit inside
+  let top = rect.top - appRect.top - pop.offsetHeight - 8;
+  if(top < 60) top = rect.bottom - appRect.top + 8; // if not enough space, place below
+  pop.style.left = left + 'px';
+  pop.style.top = top + 'px';
+  setTimeout(()=>pop.style.opacity='1',10);
+}
+function hidePopover(){ cardPopover.style.opacity='0'; setTimeout(()=>cardPopover.style.display='none',160); popoverTargetIndex = null; }
+
+/* Popover actions */
+optLock.onclick = ()=>{
+  if(popoverTargetIndex===null) return hidePopover();
+  const c = state.cards[popoverTargetIndex];
+  c.locked = !c.locked;
+  save(); renderCards(); hidePopover();
+};
+optHistory.onclick = ()=>{
+  if(popoverTargetIndex===null) return hidePopover();
+  const c = state.cards[popoverTargetIndex];
+  // switch to that card and ensure ops visible (simple)
+  state.current = popoverTargetIndex; save(); updateTrack(); hidePopover();
+  // optionally open a modal with full history - for demo we just navigate
+};
+optSkin.onclick = ()=>{
+  if(popoverTargetIndex===null) return hidePopover();
+  // ask user to choose file via hidden input
+  const chooser = document.getElementById('hiddenSkinChooser');
+  chooser.onchange = (e)=>{ const f = e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ state.cards[popoverTargetIndex].skin = r.result; save(); renderCards(); hidePopover(); }; r.readAsDataURL(f); }
+  chooser.click();
+};
+
+/* ========== Transfer modal ========== */
+document.getElementById('actTransfer').onclick = openTransfer;
+document.getElementById('closeTransfer').onclick = closeTransfer;
+document.getElementById('cancelTransfer').onclick = closeTransfer;
+document.getElementById('confirmTransfer').onclick = confirmTransfer;
+
+function openTransfer(){
+  const c = state.cards[state.current];
+  if(!c){ alert('Немає активної карти'); return; }
+  if(c.locked){ alert('Ця карта заблокована — операції неможливі'); return; }
+  transferSource.textContent = `${c.label} — ${maskCard(c.number)} — ${fmtMoney(c.balance)} ₴`;
+  transferModal.classList.add('active'); transferModal.style.display='block';
+  inpDest.value=''; inpAmount.value=''; inpNote.value='';
+}
+function closeTransfer(){ transferModal.classList.remove('active'); transferModal.style.display='none'; }
+function confirmTransfer(){
+  const dest = inpDest.value.replace(/\s/g,'').replace(/\D/g,'');
+  let amount = Number(inpAmount.value.replace(/\s/g,'').replace(',','.')) || 0;
+  const note = inpNote.value || '';
+  if(dest.length < 12){ alert('Введіть коректний номер картки (не менше 12 цифр)'); return; }
+  if(amount <= 0){ alert('Введіть суму більше 0'); return; }
+  const src = state.cards[state.current];
+  if(src.locked){ alert('Карта заблокована — операції заборонені'); closeTransfer(); return; }
+  // demo: deduct and push ops
+  src.balance = Number((src.balance - amount).toFixed(2));
+  src.ops.unshift({id:genId(), desc:`Переказ → ${dest}`, amount:-amount, at:Date.now()});
+  save(); renderCards(); renderOps(); closeTransfer();
+  showSuccess(amount, src.number, dest);
+}
+
+/* ========== Add card modal ========== */
+document.getElementById('actAdd').onclick = ()=>{ addModal.classList.add('active'); addModal.style.display='block'; }
+document.getElementById('closeAdd').onclick = closeAddModal;
+document.getElementById('cancelAddCard').onclick = closeAddModal;
+document.getElementById('addCardBtn').onclick = addCard;
+skinFile.onchange = ()=>{ skinLabel.textContent = skinFile.files[0]?.name || ''; };
+
+function closeAddModal(){ addModal.classList.remove('active'); addModal.style.display='none'; newNum.value=''; newBal.value=''; skinFile.value=''; skinLabel.textContent=''; }
+newNum.addEventListener('input', e=> e.target.value = spaced4(e.target.value).slice(0,19));
+inpDest.addEventListener('input', e=> e.target.value = spaced4(e.target.value).slice(0,19));
+inpAmount.addEventListener('input', onAmountInput);
+function addCard(){
+  const num = newNum.value.replace(/\s/g,'').replace(/\D/g,'');
+  if(num.length !== 16){ alert('Номер карти має бути 16 цифр'); return; }
+  let bal = Number((newBal.value||'').toString().replace(/\s/g,'').replace(',','.')) || Math.round(Math.random()*20000);
+  let skinData = null;
+  if(skinFile.files && skinFile.files[0]){ const r = new FileReader(); r.onload = ()=>{ skinData = r.result; finalizeAdd(skinData); }; r.readAsDataURL(skinFile.files[0]); } else finalizeAdd(null);
+  function finalizeAdd(skin){
+    state.cards.push({id:genId(), number:num, label:'Нова карта', balance:bal, skin:skin, locked:false, ops:[]});
+    state.current = state.cards.length-1;
+    save(); renderCards(); renderOps(); closeAddModal();
+  }
+}
+
+/* ========== Account modal ========== */
+document.getElementById('actAccount').onclick = ()=>{ accountModal.classList.add('active'); accountModal.style.display='block'; acctName.value = state.user.name || ''; }
+document.getElementById('closeAcct').onclick = ()=>{ accountModal.classList.remove('active'); accountModal.style.display='none'; }
+document.getElementById('saveAcct').onclick = ()=>{ state.user.name = acctName.value || state.user.name; save(); renderUser(); accountModal.classList.remove('active'); accountModal.style.display='none'; }
+document.getElementById('acctFile').onchange = (e)=>{ const f = e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ state.user.avatar = r.result; save(); renderUser(); }; r.readAsDataURL(f); }
+
+/* avatar change (top-left) */
+document.getElementById('avatarBtn').onclick = ()=>{ document.getElementById('hiddenAvatar').click(); }
+document.getElementById('hiddenAvatar').onchange = (e)=>{ const f = e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ state.user.avatar = r.result; save(); renderUser(); }; r.readAsDataURL(f); }
+
+/* ========== Theme toggle ========== */
+themeBtn.onclick = ()=>{ state.theme = state.theme === 'dark' ? 'light' : 'dark'; applyTheme(state.theme); save(); }
+document.getElementById('themeDark').onclick = ()=>{ state.theme='dark'; applyTheme('dark'); save(); }
+document.getElementById('themeLight').onclick = ()=>{ state.theme='light'; applyTheme('light'); save(); }
+function applyTheme(t){ if(t==='light'){ document.body.style.background='linear-gradient(180deg,#f3f6f9,#e9f1f6)'; document.querySelector('.app').style.background='linear-gradient(180deg,#ffffff,#f3f7fb)'; document.documentElement.style.setProperty('--accent','#0bb674'); document.documentElement.style.setProperty('--accent2','#07985e'); } else { document.body.style.background='#071226'; document.querySelector('.app').style.background='linear-gradient(180deg,#071226,#041026)'; document.documentElement.style.setProperty('--accent','#2ad39a'); document.documentElement.style.setProperty('--accent2','#18b683'); } }
+
+/* ========== Success (cat) ========== */
+function showSuccess(amount, from, to){
+  successInfo.textContent = `Сума: ${fmtMoney(amount)} ₴  | З: ${maskCard(from)} → ${to}`;
+  success.classList.add('show');
+}
+document.getElementById('closeSuccess').onclick = ()=>{ success.classList.remove('show'); }
+
+/* ========== PIN handlers ========== */
+document.getElementById('pinOk').onclick = ()=>{ const v = pinInput.value.replace(/\D/g,''); if(!state.pin){ if(v.length<4){ alert('PIN мінімум 4 цифри'); return; } state.pin=v; save(); pinScreen.style.display='none'; pinInput.value=''; } else { if(v===state.pin){ pinScreen.style.display='none'; pinInput.value=''; } else { alert('Невірний PIN'); pinInput.value=''; } } }
+document.getElementById('pinCancel').onclick = ()=>{ pinScreen.style.display='none'; }
+
+/* ========== Switch card / swipe with inertia (simple) ========== */
+let pointer = {down:false,startX:0,startOffset:0,velocity:0,lastX:0,lastT:0};
+const viewport = document.getElementById('viewport');
+viewport.addEventListener('pointerdown', (e)=>{
+  viewport.setPointerCapture(e.pointerId);
+  pointer.down = true; pointer.startX = e.clientX;
+  const m = cardsTrack.style.transform.match(/-?\d+/); pointer.startOffset = m?parseInt(m[0],10):0;
+  pointer.lastX = e.clientX; pointer.lastT = performance.now();
+  cardsTrack.style.transition = 'none';
+});
+viewport.addEventListener('pointermove', (e)=>{ if(!pointer.down) return; const dx = e.clientX - pointer.startX; const val = pointer.startOffset + dx; cardsTrack.style.transform = `translateX(${val}px)`; const now = performance.now(); const dt = now - pointer.lastT || 16; pointer.velocity = (e.clientX - pointer.lastX)/dt; pointer.lastX = e.clientX; pointer.lastT = now; });
+viewport.addEventListener('pointerup', (e)=>{ if(!pointer.down) return; pointer.down=false; const w = 340 + 14; const m = cardsTrack.style.transform.match(/-?\d+/); const curOffset = m?parseInt(m[0],10):0; const approx = -curOffset / w; let target = Math.round(approx); if(Math.abs(pointer.velocity) > 0.25){ if(pointer.velocity < 0) target = Math.ceil(approx+0.5); else target = Math.floor(approx-0.5); } target = Math.max(0, Math.min(state.cards.length-1, target)); state.current = target; save(); updateTrack(); } );
+function switchCard(i){ state.current = Math.max(0, Math.min(state.cards.length-1, i)); save(); updateTrack(); }
+
+/* ========== Helpers: position & events outside ========== */
+document.addEventListener('click', (e)=>{ if(!e.target.closest('.popover') && !e.target.closest('.card')) hidePopover(); });
+function updateTrack(){ const w = 340 + 14; const off = -state.current * w; cardsTrack.style.transition = 'transform .32s cubic-bezier(.2,.8,.2,1)'; cardsTrack.style.transform = `translateX(${off}px)`; renderDots(); renderOps(); }
+
+/* ========== Dotted events ========== */
+function renderDots(){ dots.innerHTML=''; state.cards.forEach((c,i)=>{ const d=document.createElement('div'); d.className='dot'+(i===state.current?' active':''); d.onclick = ()=>{ switchCard(i); }; dots.appendChild(d); }); }
+
+/* ========== Input formatting for amount ========== */
+function onAmountInput(e){ const v = e.target.value.replace(/\s/g,'').replace(/[^0-9,.]/g,'').replace(',', '.'); if(v==='') return e.target.value=''; const parts = v.split('.'); let int = parts[0]||'0'; let dec = parts[1]||''; int = int.replace(/^0+(?=\d)/,''); int = int.replace(/\B(?=(\d{3})+(?!\d))/g,' '); let out = int; if(dec.length>0) out += '.' + dec.slice(0,2); e.target.value = out; }
+
+/* ========== Misc UI bindings ========== */
+function bindUI(){
+  document.getElementById('actAccount').onclick = ()=>{ accountModal.classList.add('active'); accountModal.style.display='block'; acctName.value = state.user.name||''; };
+  document.getElementById('actAdd').onclick = ()=>{ addModal.classList.add('active'); addModal.style.display='block'; };
+  document.getElementById('actTransfer').onclick = ()=>{ openTransfer(); };
+  document.getElementById('closeAdd').onclick = closeAddModal;
+  document.getElementById('cancelAddCard').onclick = closeAddModal;
+  document.getElementById('addCardBtn').onclick = addCard;
+  document.getElementById('themeBtn').onclick = ()=>{ state.theme = state.theme==='dark' ? 'light':'dark'; applyTheme(state.theme); save(); };
+  document.getElementById('settingsBtn').onclick = ()=>{ accountModal.classList.add('active'); accountModal.style.display='block'; };
+  document.getElementById('optLock').onclick = optLock.onclick;
+  document.getElementById('optHistory').onclick = optHistory.onclick;
+  document.getElementById('optSkin').onclick = optSkin.onclick;
+  document.getElementById('hiddenSkinChooser').onchange = (e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const i = popoverTargetIndex; if(i!==null){ state.cards[i].skin = r.result; save(); renderCards(); hidePopover(); } }; r.readAsDataURL(f); };
+  document.getElementById('hiddenAvatar').onchange = (e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ state.user.avatar = r.result; save(); renderUser(); }; r.readAsDataURL(f); };
+  document.getElementById('acctFile').onchange = (e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ state.user.avatar = r.result; save(); renderUser(); }; r.readAsDataURL(f); };
+  document.getElementById('addCardBtn').onclick = addCard;
+  document.getElementById('closeTransfer').onclick = closeTransfer;
+  document.getElementById('cancelTransfer').onclick = closeTransfer;
+  document.getElementById('confirmTransfer').onclick = confirmTransfer;
+  document.getElementById('saveAcct').onclick = ()=>{ state.user.name = acctName.value || state.user.name; save(); renderUser(); accountModal.classList.remove('active'); accountModal.style.display='none'; };
+  document.getElementById('skinFile').onchange = ()=>{ skinLabel.textContent = skinFile.files[0]?.name || ''; };
+  // format inputs
+  newNum.addEventListener('input', e=> e.target.value = spaced4(e.target.value).slice(0,19) );
+  document.getElementById('inpDest').addEventListener('input', e=> e.target.value = spaced4(e.target.value).slice(0,19) );
+  document.getElementById('inpAmount').addEventListener('input', onAmountInput);
+}
+
+/* ========== Add card handler (duplicate safe) ========== */
+function addCard(){
+  const num = newNum.value.replace(/\s/g,'').replace(/\D/g,'');
+  if(num.length !== 16){ alert('Номер карти має містити 16 цифр'); return; }
+  let bal = Number((newBal.value||'').toString().replace(/\s/g,'').replace(',','.')) || Math.round(Math.random()*20000);
+  if(skinFile.files && skinFile.files[0]){ const r=new FileReader(); r.onload=()=>{ finalizeAdd(r.result); }; r.readAsDataURL(skinFile.files[0]); } else finalizeAdd(null);
+  function finalizeAdd(skin){ state.cards.push({id:genId(), number:num, label:'Нова карта', balance:bal, skin:skin, locked:false, ops:[]}); state.current = state.cards.length-1; save(); renderCards(); renderOps(); closeAddModal(); }
+}
+
+/* ========== Utilities: close modals ========== */
+function closeAddModal(){ addModal.classList.remove('active'); addModal.style.display='none'; newNum.value=''; newBal.value=''; skinFile.value=''; skinLabel.textContent=''; }
+function closeTransfer(){ transferModal.classList.remove('active'); transferModal.style.display='none'; }
+function openTransfer(){ const c = state.cards[state.current]; if(!c){ alert('Немає активної карти'); return; } if(c.locked){ alert('Карта заблокована'); return; } transferSource.textContent = `${c.label} — ${maskCard(c.number)} — ${fmtMoney(c.balance)} ₴`; transferModal.classList.add('active'); transferModal.style.display='block'; }
+
+/* Block right-click globally and selection already disabled */
+/* But we also explicitly block contextmenu */
+document.addEventListener('contextmenu', (e)=>{ e.preventDefault(); });
+
+/* Initialize */
+init();
+
+/* Expose small console helpers for debug (optional) */
+window._mono = { state, save, renderCards, renderOps };
+</script>
+</body>
+</html>
